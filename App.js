@@ -3,11 +3,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { appStyles } from "./App.style";
 import Header from "./components/Header/Header";
 import CardTodo from "./components/CardTodo/CardTodo";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TabBottomMenu from "./components/TabBottomMenu/TabBottomMenu";
 import ButtonAdd from "./components/ButtonAdd/ButtonAdd";
 import Dialog from "react-native-dialog";
 import uuid from "react-native-uuid";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TODO_LIST = [
   { id: 1, title: "Todo", isCompleted: true },
@@ -22,7 +23,26 @@ const TODO_LIST = [
   { id: 10, title: "Todo sqsqqd", isCompleted: true },
 ];
 
+let isFirstRender = true;
+let isLoadUpdate = true;
+
 export default function App() {
+  useEffect(() => {
+    loadTodoList();
+  });
+
+  useEffect(() => {
+    if (isLoadUpdate) {
+      isLoadUpdate = false;
+    } else {
+      if (!isFirstRender) {
+        saveTodoList();
+      } else {
+        isFirstRender = false;
+      }
+    }
+  }, [todoList]);
+
   const [todoList, setTodoList] = useState([]);
   const [selectedTabName, setSelectedTabName] = useState("all");
   const [isDialogVisible, setIsDialogVisible] = useState(false);
@@ -92,6 +112,27 @@ export default function App() {
 
     setTodoList([...todoList, newTodo]);
     setIsDialogVisible(false);
+  };
+
+  const saveTodoList = async () => {
+    try {
+      await AsyncStorage.setItem("@todolist", JSON.stringify(todoList));
+    } catch (error) {
+      alert("erreur " + error);
+    }
+  };
+
+  const loadTodoList = async () => {
+    try {
+      const stringifiedTodoList = await AsyncStorage.getItem("@todolist");
+      if (stringifiedTodoList !== null) {
+        const parsedTodoList = JSON.parse(jsonValue);
+        isLoadUpdate = true;
+        setTodoList(parsedTodoList);
+      }
+    } catch (error) {
+      alert("erreur " + error);
+    }
   };
 
   return (
